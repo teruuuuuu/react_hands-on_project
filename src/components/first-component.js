@@ -1,43 +1,49 @@
 import React, { Component } from 'react';
+import { bindActionCreators } from 'redux';
 import PropTypes from 'prop-types';
-
+import { connect } from 'react-redux';
 import ChildComponent from './child-component';
 
+import * as SampleAction from '../actions/sample-action';
+
+function mapStateToProps(state) {
+  const { text } = state.sampleReducer
+  return {
+    text: text
+  };
+}
+function mapDispatchToProps(dispatch) {
+  return bindActionCreators( Object.assign({}, SampleAction), dispatch);
+}
+
+@connect(mapStateToProps, mapDispatchToProps)
 export default class FirstComponent extends Component {
   static propTypes = {
-    copyText: PropTypes.string.isRequired
-  }
-  static defaultProps = {
-    copyText: 'copy text'
+    change_text: PropTypes.func.isRequired,
+    text: PropTypes.string
   }
   constructor(props) {
     super(props);
-    this.state = {
-      copyText: 'copy text',
-    };
   }
 
   textFromInput(e) {
-     this.setState({ copyText: e.target.value });
+    this.props.change_text(e.target.value)
   }
-  
-  renderItem(copyText){
+
+  renderItem(text){
     return (
-      <ChildComponent copyText={ copyText }/>
+      <ChildComponent copyText={ text }/>
     )
   }
 
   render() {
-    const { copyText } = this.state;
-
-
+    const { text } = this.props;
     return (
       <div>
         <h1>Hello, React!</h1>
         <input name="a" type="text" placeholder="from text" onChange = { this.textFromInput.bind(this) } /><br />
-        <input name="a" type="text"  placeholder="to text" value = { this.state.copyText } readOnly="readonly" /><br />
-        <ChildComponent copyText={ copyText }/>
-        {this.renderItem(copyText)}
+        <input name="a" type="text"  placeholder="to text" value = { text } readOnly="readonly" /><br />
+        <ChildComponent copyText={ text }/>
       </div>
     );
   }

@@ -192,3 +192,174 @@ render() {
 }
 ```
 表示する内容を条件によって切り替える必要があるけどコンポーネントを分けるまでもない場合で、renderメソッド内をごちゃごちゃさせたくないという場合があるのでしたらこの方が良い場合もあるかもしれませんが、ルールを決めておかないと逆にわかりづらくなりそうなので注意が必要です。この辺りが柔軟そうなのは助かりそうではあります。
+
+## Redux
+### Reduxでコンポーネンの値を変更してみる
+先ほどは親コンポーネントのプロパティを直接子コンポーネントに渡して連携していました。今度はReduxのフレームワークを使用してコンポーネント間の連携を行っていきたいと思いまして、reactであれば[react-redux](https://github.com/reactjs/react-redux)というモジュールが公式から出ているのでこちらを利用したいと思います。    
+まずReduxについての簡単な概要ですが、single-page-applicationの誕生により以前よりも多くの状態を管理する必要が出てきていましてFluxというフレームワーク
+ではデータの流れを一方通行にしてしまうことで、例えばコンポーネント間でのデータのやりとりでそれぞれのコンポーネントが実データを更新する処理を行っているのであれば管理しづらくなるので
+それを打開するため状態を更新する場合は共通のアクションを呼び出すなどしてデータを一方通行にするといった方法が出てきています。ReduxというのはFluexの実装の一つという位置づけのようなもので
+厳密なFluxよりかはReactから扱いやすいように変更が加えられたものとなっています。
+
+必要なモジュールがインストールし忘れていたのでインストール
+> npm install --save react-redux
+> npm install --save redux-thunk
+> npm install babel-plugin-transform-decorators-legacy --save-dev
+
+react-redux, redux-thunkについてはreact-redux関連のモジュールと想像がつくと思います。babel-plugin-transform-decorators-legacyについてはreduxが生成するstateをコンポーネントに関連付けるのに使用する@connetアノテーションで必要になります。    
+まず.babelrcを修正してbabel-plugin-transform-decorators-legacyを有効にするようにしたいと思います。
+```
+{
+  "presets": [ "es2015", "react", "stage-2"],
+  "plugins": ["transform-decorators-legacy"]
+}
+```
+次に"src/define/action/sample-action-define.js"に今回追加するアクションの定数定義を追加します。
+```
+export const CHANGE_TEXT = 'CHANGE_TEXT'
+```
+
+"src/reducers/sample-reducer.js"にstate更新に使用するreducerを追加します。これはコンポーネント側がアクションを呼び出して来た場合にここでstateの更新を行います。
+```
+import { CHANGE_TEXT } from '../define/action/sample-action-define'
+
+const initialState = {
+    text : 'init text'
+  };
+
+export default function sampleReducer(state = initialState, action) {
+  switch (action.type) {
+    case CHANGE_TEXT:
+      return Object.assign({}, state, { text: action.text})
+
+    default:
+      return state
+  }
+}
+```
+
+それから"src/reducers/index.js"にreducerをマージするためのメソッドを追加します。今回使用するReducerは一つだけなのであまり恩恵を感じないですが、複数のReducerが必要になる場合はこういったようにマージするメソッドがあった方が良さそうです。
+```
+import { combineReducers } from 'redux'
+import sampleReducer from './sample-reducer'
+
+const rootReducer = combineReducers({
+  sampleReducer
+})
+export default rootReducer
+```
+
+Reducerを呼び出すアクションを"src/actions/sample-action.js"に追加します。アクション自体はコンポーネントがディスパッチという関数を使うことで呼び出すことができます。
+```
+import * as types from '../define/action/sample-action-define'
+
+export function change_text(text) {
+  return { type: types.CHANGE_TEXT, text: text }
+}
+```
+
+stateを管理する大元であるstoreを"src/store/store-config.js"に作成します。applyMiddleware後にfinalCreateStoreやっているところでstoreを生成しています。applyMiddlewareについてはreactにおけるミドルウェアの機能を使う時に必要になるもので例えばログ出力や他サーバにリクエストを投げる場合などに利用されます。今回はミドルウェアを使用することもないのでapplyMiddlewareを使わずにcreateStoreだけでも良いはずですが、後からミドルウェアを使うことを想定し先にこの書き方にしておきます。module.hotの判定式の内部ではreduxを使う場合にホットリロードを行うための設定となっておりまして、これがない場合は開発車モードで起動中にファイルを保存するたびにstateが初期化されるのを防ぐためにあった方が良さそうなものです。
+```
+import { createStore, applyMiddleware  } from 'redux'
+import thunk from 'redux-thunk'
+import rootReducer from '../reducers'
+
+export default function StoreConfig(preloadedState) {
+  const finalCreateStore = applyMiddleware(thunk)(createStore);
+  const store = finalCreateStore(rootReducer, preloadedState);
+  if (module.hot) {
+    // Enable Webpack hot module replacement for reducers
+    module.hot.accept('../reducers', () => {
+      const nextReducer = require('../reducers').default
+      store.replaceReducer(nextReducer)
+    })
+  }
+  return store
+}
+```
+
+Reactにreduxのstateを私て扱えるようにする。"src/main.js"が以下になるようにします。ここではreact-reduxモジュールのProviderコンポーネントにstoreを渡しています。
+```
+import React from 'react'
+import { render } from 'react-dom'
+import { Provider } from 'react-redux'
+import FirstComponent from './components/first-component'
+import StoreConfig from './store/store-config'
+
+const store = StoreConfig()
+render(
+  <Provider store={store}>
+    <FirstComponent />
+  </Provider >
+  , document.getElementById('app')
+);
+```
+
+それではReduxのstateを利用する側である"src/components/first-component.js"を以下のように修正します。mapStateToPropsにはstateの値が、mapDispatchToPropsにはディスパッチするために必要となるメソッドが格納されています。@connect(mapStateToProps, mapDispatchToProps)のアノテーションでreduxのstoreを渡しています。propTypesのプロパティと、textに変更があった時に呼び出すメソッドの情報が入っていてRenderメソッドではこれを使用して描画を行っています。またテキスト入力を行った際に呼び出されるtextFromInput内で"this.props.change_text(e.target.value)"でアクションを呼び出した上でディスパッチしてReducerにより新しいstateが発行されます。
+```
+import React, { Component } from 'react';
+import { bindActionCreators } from 'redux';
+import PropTypes from 'prop-types';
+import { connect } from 'react-redux';
+import ChildComponent from './child-component';
+
+import * as SampleAction from '../actions/sample-action';
+
+function mapStateToProps(state) {
+  const { text } = state.sampleReducer
+  return {
+    text: text
+  };
+}
+function mapDispatchToProps(dispatch) {
+  return bindActionCreators( Object.assign({}, SampleAction), dispatch);
+}
+
+@connect(mapStateToProps, mapDispatchToProps)
+export default class FirstComponent extends Component {
+  static propTypes = {
+    change_text: PropTypes.func.isRequired,
+    text: PropTypes.string
+  }
+  constructor(props) {
+    super(props);
+  }
+
+  textFromInput(e) {
+    this.props.change_text(e.target.value)
+  }
+
+  renderItem(text){
+    return (
+      <ChildComponent copyText={ text }/>
+    )
+  }
+
+  render() {
+    const { text } = this.props;
+    return (
+      <div>
+        <h1>Hello, React!</h1>
+        <input name="a" type="text" placeholder="from text" onChange = { this.textFromInput.bind(this) } /><br />
+        <input name="a" type="text"  placeholder="to text" value = { text } readOnly="readonly" /><br />
+        <ChildComponent copyText={ text }/>
+      </div>
+    );
+  }
+}
+```
+
+これで動かしてみるとeslintにno-undefとか怒られるはずなので、.eslintrc.jsを以下のように修正し再度"npm run dev"で動画確認できるはずです。
+```
+'rules': {
+  // allow paren-less arrow functions
+  'arrow-parens': 0,
+  // allow async-await
+  'generator-star-spacing': 0,
+  'react/jsx-uses-vars': 1,
+  // allow debugger during development
+  'no-debugger': process.env.NODE_ENV === 'production' ? 2 : 0,
+  'no-undef': 0,
+  'no-console': 0,
+}
+```

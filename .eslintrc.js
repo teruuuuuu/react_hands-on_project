@@ -7,7 +7,7 @@ module.exports = {
     sourceType: 'module'
   },
   env: {
-    browser: true
+    'browser': true
   },
   // https://github.com/feross/standard/blob/master/RULES.md#javascript-standard-style
   extends: [
@@ -28,6 +28,7 @@ module.exports = {
     'react/jsx-uses-vars': 1,
     // allow debugger during development
     'no-debugger': process.env.NODE_ENV === 'production' ? 2 : 0,
-    'no-console': 0
+    'no-undef': 0,
+    'no-console': 0,
   }
 }
