@@ -3,6 +3,7 @@ import { bindActionCreators } from 'redux';
 import PropTypes from 'prop-types';
 import { connect } from 'react-redux';
 import ChildComponent from './child-component';
+import ListComponent from './list-component';
 
 import * as SampleAction from '../actions/sample-action';
 
@@ -44,6 +45,7 @@ export default class FirstComponent extends Component {
         <input name="a" type="text" placeholder="from text" onChange = { this.textFromInput.bind(this) } /><br />
         <input name="a" type="text"  placeholder="to text" value = { text } readOnly="readonly" /><br />
         <ChildComponent copyText={ text }/>
+        <ListComponent />
       </div>
     );
   }
