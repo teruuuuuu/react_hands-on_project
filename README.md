@@ -193,7 +193,7 @@ render() {
 ```
 表示する内容を条件によって切り替える必要があるけどコンポーネントを分けるまでもない場合で、renderメソッド内をごちゃごちゃさせたくないという場合があるのでしたらこの方が良い場合もあるかもしれませんが、ルールを決めておかないと逆にわかりづらくなりそうなので注意が必要です。この辺りが柔軟そうなのは助かりそうではあります。
 
-## Redux
+## react-eduxを利用する
 ### Reduxでコンポーネンの値を変更してみる
 先ほどは親コンポーネントのプロパティを直接子コンポーネントに渡して連携していました。今度はReduxのフレームワークを使用してコンポーネント間の連携を行っていきたいと思いまして、reactであれば[react-redux](https://github.com/reactjs/react-redux)というモジュールが公式から出ているのでこちらを利用したいと思います。    
 まずReduxについての簡単な概要ですが、single-page-applicationの誕生により以前よりも多くの状態を管理する必要が出てきていましてFluxというフレームワーク
@@ -363,3 +363,140 @@ export default class FirstComponent extends Component {
   'no-console': 0,
 }
 ```
+
+### 子のコンンポーネントからアクションを呼び出してみる
+子のコンポーネントにも直接storeで管理しているstateを関連付けて利用することができる。以下の修正を加えることでテキストのstateを空白にするアクションを呼び出すようにすることができる。
+```
+import React, { Component } from 'react';
+import PropTypes from 'prop-types';
+import { bindActionCreators } from 'redux';
+import { connect } from 'react-redux';
+
+import * as SampleAction from '../actions/sample-action';
+
+function mapStateToProps() {
+  return {}
+}
+function mapDispatchToProps(dispatch) {
+  return bindActionCreators( Object.assign({}, SampleAction), dispatch);
+}
+
+@connect(mapStateToProps, mapDispatchToProps)
+export default class ChildComponent extends Component {
+  static propTypes = {
+    change_text: PropTypes.func.isRequired,
+    copyText: PropTypes.string.isRequired
+  }
+  static defaultProps = {
+    copyText: 'init val'
+  }
+  constructor(props) {
+    super(props);
+  }
+
+  clearText() {
+    this.props.change_text("")
+  }
+
+  render() {
+    const { copyText } = this.props;
+    return (
+      <div>
+        <label>{ copyText }</label><br />
+        <button onClick = { this.clearText.bind(this) }>クリア</button>
+      </div>
+    );
+  }
+}
+```
+今回は直接storeの値を関連付けるようにしているが、親コンポーネント側で呼び出すアクションなりを変更できるようにしたいのであればpropsとして親のコンポーネントから子のコンポーネントに直接渡せるようにしたら良さそうに思います。
+
+## 表示について
+### リストを表示してみる
+リストのデータを表示する場合は以下のようになります。
+```
+import React, { Component } from 'react';
+import PropTypes from 'prop-types';
+
+export default class ListComponent extends Component {
+  static propTypes = {
+    listData: PropTypes.array
+  }
+  static defaultProps = {
+    listData: [{}
+    ]
+  }
+  constructor(props) {
+    super(props);
+    this.state = {
+      listData: [
+        {id: 1, name: "山田一郎"},
+        {id: 2, name: "田中二郎"},
+        {id: 3, name: "佐藤三郎"}
+      ]
+    }
+  }
+
+  render() {
+    const listData = this.state.listData
+    return (
+      <ul className="user-list">
+        {listData.map((user, i) =>
+          <div key={i}><li>{ user.name } </li></div>
+        )}
+      </ul>
+    );
+  }
+}
+```
+
+renderの部分は以下のように書き換えることもできる
+```
+userRender(userList){
+  return (
+    <ul className="user-list">
+      {userList.map((user, i) =>
+        <div key={i}><li>{ user.name } </li></div>
+      )}
+    </ul>
+  )
+}
+
+render() {
+  const listData = this.state.listData
+  return (
+    <div>
+      { this.userRender(listData) }
+    </div>
+  );
+```
+または以下のような書き方もできる
+```
+userRender(userList){
+  const userListView = []
+  userList.map((user, i) =>
+    userListView.push(<div key={i}><li>{ user.name } </li></div>)
+  )
+  return (
+    <ul className="user-list">
+      { userListView }
+    </ul>
+  )
+}
+
+render() {
+  const listData = this.state.listData
+  return (
+    <div>
+      { this.userRender(listData) }
+    </div>
+  );
+}
+```
+
+### webpackのcss-loaderを使ってみる
+react,webpackでの環境でスタイルを適用する方法は複数あるのですが、まずはhtmlのheadタグの中にstyleを書き込んですべてのコンポーネントが適用対象にするのがなじみ深いと思いますのでそれから試してみたいと思います。webpackのcss-loaderを使ってbootstrapを読み込むようにしたいと思います。適用するのは簡単でbootstrapからファイル一式をダウンロードしてきて'src/assets/bootstrap'にダウンロードしたすべてのファイルを写した上で"src/main.js"に以下のimportを追加するだけになっております。
+```
+import './assets/bootstrap/css/bootstrap.min.css'
+```
+これで動きを見てみるとheadタグの中にstyleが書き込まれているのが分かります。今回はcssで試しましたがsassやstylusもwebpack側で読み込んで使うことができます(別途loader用のプラグインインストールが必要になるかもしれないです)。 
