@@ -5,6 +5,7 @@ import FirstComponent from './components/first-component'
 import StoreConfig from './store/store-config'
 
 import './assets/bootstrap/css/bootstrap.min.css'
+import './assets/css/main.css'
 
 const store = StoreConfig()
 render(

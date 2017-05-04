@@ -1,6 +1,5 @@
 # react_hands-on_project
-
-> A project made by vue-cli
+Reactの復習もかねてハンズオン用のプロジェクトを作成してみました。プロジェクトはvue-cliで作成しているのでwebpackのconfig周りでは使用していないvue周りの設定が残っていると思います。
 
 ## Build Setup
 
@@ -499,4 +498,4 @@ react,webpackでの環境でスタイルを適用する方法は複数あるの�
 ```
 import './assets/bootstrap/css/bootstrap.min.css'
 ```
-これで動きを見てみるとheadタグの中にstyleが書き込まれているのが分かります。今回はcssで試しましたがsassやstylusもwebpack側で読み込んで使うことができます(別途loader用のプラグインインストールが必要になるかもしれないです)。 
+これで動きを見てみるとheadタグの中にstyleが書き込まれているのが分かります。今回はcssで試しましたがsassやstylusもwebpack側で読み込んで使うことができます(別途loader用のプラグインインストールが必要になるかもしれないです)。
