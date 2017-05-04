@@ -499,3 +499,106 @@ react,webpackでの環境でスタイルを適用する方法は複数あるの�
 import './assets/bootstrap/css/bootstrap.min.css'
 ```
 これで動きを見てみるとheadタグの中にstyleが書き込まれているのが分かります。今回はcssで試しましたがsassやstylusもwebpack側で読み込んで使うことができます(別途loader用のプラグインインストールが必要になるかもしれないです)。
+
+### CSS-in-JSを試してみる
+Reactではcssをstyle属性として扱っていましてCSS-in-JSはCSSの記法で書いたスクリプトをを直接style属性として扱えるようにするものとなっております。例えば"src/style/sample.css.js"が以下の内容だったとする場合
+```
+export default {
+  ul: {
+    listStyle: 'none',
+    marginTop: '20px',
+    padding: '0px',
+    fontSize: '18px',
+  },
+  span: {
+    paddingLeft: '20px',
+  }
+}
+```
+コンポーネント側では以下のようにインポートしてstyle属性を設定することができます。
+```
+import React, { Component } from 'react';
+import PropTypes from 'prop-types';
+
+import styles from '../style/sample.css.js';
+
+export default class ListComponent extends Component {
+  static propTypes = {
+    listData: PropTypes.array
+  }
+  static defaultProps = {
+    listData: [{}
+    ]
+  }
+  constructor(props) {
+    super(props);
+    this.state = {
+      listData: [
+        {id: 1, name: "山田一郎"},
+        {id: 2, name: "田中二郎"},
+        {id: 3, name: "佐藤三郎"}
+      ]
+    }
+  }
+
+  render() {
+    const listData = this.state.listData
+    return (
+      <ul style={styles.ul}>
+        {listData.map((user, i) =>
+          <li key={i}><span>{ user.id }</span><span style={styles.span}>{ user.name } </span></li>
+        )}
+      </ul>
+    );
+  }
+}
+```
+またjsのプロパティとして扱っているだけなのでcss用にファイルを分ける必要もなく、以下のようにスタイルを設定することもできます。
+```
+import React, { Component } from 'react';
+import PropTypes from 'prop-types';
+
+export default class ListComponent extends Component {
+  static propTypes = {
+    listData: PropTypes.array
+  }
+  static defaultProps = {
+    listData: [{}
+    ]
+  }
+  constructor(props) {
+    super(props);
+    this.state = {
+      listData: [
+        {id: 1, name: "山田一郎"},
+        {id: 2, name: "田中二郎"},
+        {id: 3, name: "佐藤三郎"}
+      ],
+      style: {
+        ul: {
+          listStyle: 'none',
+          marginTop: '20px',
+          padding: '0px',
+          fontSize: '18px',
+        },
+        span: {
+          paddingLeft: '20px',
+        }
+      }
+    }
+  }
+
+  render() {
+    const listData = this.state.listData
+    const style = this.state.style
+    return (
+      <ul style={style.ul}>
+        {listData.map((user, i) =>
+          <li key={i}><span>{ user.id }</span><span style={style.span}>{ user.name } </span></li>
+        )}
+      </ul>
+    );
+  }
+}
+```
+デザイナーではないので良くわからないのですが、基本的にはcss-loaderの機能だけでスタイルを調整して動的に変更したい場合とかがあったらCSS-in-JSを使うとかの方がシンプルで良さそうな気がしました。

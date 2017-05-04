@@ -1,6 +1,8 @@
 import React, { Component } from 'react';
 import PropTypes from 'prop-types';
 
+import styles from '../style/sample.css.js';
+
 export default class ListComponent extends Component {
   static propTypes = {
     listData: PropTypes.array
@@ -22,11 +24,10 @@ export default class ListComponent extends Component {
 
   render() {
     const listData = this.state.listData
-
     return (
-      <ul className="user-list">
+      <ul style={styles.ul}>
         {listData.map((user, i) =>
-          <div key={i}><li>{ user.name } </li></div>
+          <li key={i}><span>{ user.id }</span><span style={styles.span}>{ user.name } </span></li>
         )}
       </ul>
     );
